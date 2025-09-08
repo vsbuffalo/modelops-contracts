@@ -7,21 +7,30 @@ import enum
 from dataclasses import dataclass, field
 from typing import Mapping, Any
 from collections.abc import Mapping as MappingABC
+from types import MappingProxyType
 
 from .errors import ContractViolationError
 
+# Constants
+MAX_DIAG_BYTES = 65536  # 64KB limit for diagnostics to prevent unbounded growth
+
 
 class TrialStatus(enum.Enum):
-    """Status of a trial evaluation."""
-    OK = "ok"
-    USER_ERROR = "user_error"
-    INFRA_ERROR = "infra_error"
-    TIMEOUT = "timeout"
+    """Status of a trial evaluation (MVP subset).
+    
+    Future additions may include:
+    - PRUNED: for early stopping by algorithms
+    - INFEASIBLE: for constraint violations
+    - PENDING/LEASED: for non-terminal states
+    """
+    COMPLETED = "completed"  # Successfully evaluated
+    FAILED = "failed"        # Generic failure
+    TIMEOUT = "timeout"      # Exceeded time limit
 
 
 def _canon_scalar(v: Any) -> bool | int | float | str:
     """Canonicalize scalar value, rejecting unsupported types."""
-    if isinstance(v, bool | int | float | str):
+    if isinstance(v, (bool, int, float, str)):
         return v
     raise ContractViolationError(f"Unsupported param type: {type(v).__name__}")
 
@@ -56,8 +65,12 @@ class UniqueParameterSet:
         if not self.param_id:
             raise ContractViolationError("param_id must be non-empty")
         
+        # Freeze params: copy to dict (to normalize) then wrap with mapping proxy
+        frozen = MappingProxyType(dict(self.params))
+        object.__setattr__(self, "params", frozen)
+        
         # Validate parameter types and values
-        for key, value in self.params.items():
+        for key, value in frozen.items():
             if not isinstance(value, (float, int, str, bool)):
                 raise ContractViolationError(
                     f"Parameter {key} has invalid type {type(value).__name__}"
@@ -100,23 +113,23 @@ class TrialResult:
     param_id: str
     loss: float
     diagnostics: Mapping[str, Any] = field(default_factory=dict)
-    status: TrialStatus = TrialStatus.OK
+    status: TrialStatus = TrialStatus.COMPLETED
     
     def __post_init__(self):
         if not self.param_id:
             raise ContractViolationError("param_id must be non-empty")
         
-        # Finite loss only required for OK status
-        if self.status == TrialStatus.OK and not math.isfinite(self.loss):
-            raise ContractViolationError(f"Loss must be finite for OK status, got: {self.loss}")
+        # Finite loss only required for COMPLETED status
+        if self.status == TrialStatus.COMPLETED and not math.isfinite(self.loss):
+            raise ContractViolationError(f"Loss must be finite for COMPLETED status, got: {self.loss}")
         
         # Ensure diagnostics is dict-like
         if not isinstance(self.diagnostics, MappingABC):
             object.__setattr__(self, 'diagnostics', dict(self.diagnostics))
         
         # Validate diagnostics size and serializability
-        if _approx_size(dict(self.diagnostics)) > 65536:
-            raise ContractViolationError("diagnostics too large (>64 KiB)")
+        if _approx_size(dict(self.diagnostics)) > MAX_DIAG_BYTES:
+            raise ContractViolationError(f"diagnostics too large (>{MAX_DIAG_BYTES} bytes)")
 
 
 __all__ = [
@@ -125,4 +138,5 @@ __all__ = [
     "SeedInfo",
     "TrialResult",
     "make_param_id",
+    "MAX_DIAG_BYTES",
 ]

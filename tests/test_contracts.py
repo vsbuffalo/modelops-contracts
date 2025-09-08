@@ -8,6 +8,8 @@ from modelops_contracts import (
     SeedInfo,
     ContractViolationError,
     make_param_id,
+    AdaptiveAlgorithm,
+    MAX_DIAG_BYTES,
 )
 
 
@@ -47,7 +49,7 @@ def test_trial_result():
     result = TrialResult(
         param_id="abc123",
         loss=0.5,
-        status=TrialStatus.OK,
+        status=TrialStatus.COMPLETED,
     )
     assert result.loss == 0.5
     
@@ -57,14 +59,14 @@ def test_trial_result_error_status():
     result = TrialResult(
         param_id="abc123",
         loss=float("inf"),  # OK for error status
-        status=TrialStatus.USER_ERROR,
+        status=TrialStatus.FAILED,
     )
-    assert result.status == TrialStatus.USER_ERROR
+    assert result.status == TrialStatus.FAILED
 
 
 def test_diagnostics_size_limit():
     """Test diagnostics size validation."""
-    # Create data that's definitely > 64KB when serialized
+    # Create data that's definitely > MAX_DIAG_BYTES when serialized
     huge_data = {f"key_{i}": "x" * 1000 for i in range(100)}
     with pytest.raises(ContractViolationError, match="too large"):
         TrialResult(
@@ -101,9 +103,13 @@ def test_immutability():
     with pytest.raises(AttributeError):  # Frozen dataclass raises AttributeError
         params.param_id = "new_id"  # Frozen dataclass
     
-    # Params dict is already read-only from __post_init__
-    # It's a regular dict but the object is frozen, so this test is about the concept
-    assert isinstance(params.params, dict)  # Coerced to dict in __post_init__
+    # Params dict is truly read-only via MappingProxyType
+    with pytest.raises(TypeError):  # MappingProxy is read-only
+        params.params["x"] = 2.0
+    
+    # Verify it's a MappingProxyType
+    from types import MappingProxyType
+    assert isinstance(params.params, MappingProxyType)
 
 
 def test_canonical_param_id():
@@ -123,18 +129,18 @@ def test_canonical_param_id():
 
 def test_finite_loss_validation():
     """Test loss validation rules."""
-    # OK status requires finite loss
-    with pytest.raises(ContractViolationError, match="finite for OK status"):
+    # COMPLETED status requires finite loss
+    with pytest.raises(ContractViolationError, match="finite for COMPLETED status"):
         TrialResult(
             param_id="abc123",
             loss=float("nan"),
-            status=TrialStatus.OK,
+            status=TrialStatus.COMPLETED,
         )
     
     # Error status allows non-finite loss
     result = TrialResult(
         param_id="abc123", 
         loss=float("-inf"),
-        status=TrialStatus.INFRA_ERROR,
+        status=TrialStatus.TIMEOUT,
     )
-    assert result.status == TrialStatus.INFRA_ERROR
+    assert result.status == TrialStatus.TIMEOUT

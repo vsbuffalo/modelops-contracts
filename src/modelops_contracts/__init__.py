@@ -7,37 +7,42 @@ from .types import (
     SeedInfo,
     TrialResult,
     make_param_id,
+    MAX_DIAG_BYTES,
 )
-from .protocols import AlgorithmAdapter
+from .adaptive import AdaptiveAlgorithm, AlgorithmAdapter
+from .sim import (
+    SimulationService,
+    SimulationFunction,
+    AggregatorFunction,
+    Scalar,
+    TableIPC,
+    SimReturn,
+    FutureLike,
+)
 from .errors import ContractViolationError
-from .artifacts import (
-    BundleRef,
-    ResolvedBundle,
-    BUNDLE_MANIFEST,
-    LAYER_INDEX,
-    EXTERNAL_REF,
-    OCI_MANIFEST,
-    OCI_EMPTY_CFG,
-    MediaType,
-)
 
 __version__ = CONTRACTS_VERSION
 
 __all__ = [
+    # Core types
     "CONTRACTS_VERSION",
     "TrialStatus",
     "UniqueParameterSet",
     "SeedInfo", 
     "TrialResult",
     "make_param_id",
-    "AlgorithmAdapter",
+    "MAX_DIAG_BYTES",
+    # Protocols
+    "AdaptiveAlgorithm",
+    "AlgorithmAdapter",  # Backward compat alias
+    "SimulationService",
+    "SimulationFunction",
+    "AggregatorFunction",
+    # Sim types
+    "Scalar",
+    "TableIPC",
+    "SimReturn",
+    "FutureLike",
+    # Errors
     "ContractViolationError",
-    "BundleRef",
-    "ResolvedBundle",
-    "BUNDLE_MANIFEST",
-    "LAYER_INDEX",
-    "EXTERNAL_REF",
-    "OCI_MANIFEST",
-    "OCI_EMPTY_CFG",
-    "MediaType",
 ]
