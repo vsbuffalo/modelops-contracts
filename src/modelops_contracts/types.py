@@ -11,6 +11,9 @@ from types import MappingProxyType
 
 from .errors import ContractViolationError
 
+# Type definitions
+Scalar = bool | int | float | str
+
 # Constants
 MAX_DIAG_BYTES = 65536  # 64KB limit for diagnostics to prevent unbounded growth
 
@@ -28,23 +31,28 @@ class TrialStatus(enum.Enum):
     TIMEOUT = "timeout"      # Exceeded time limit
 
 
-def _canon_scalar(v: Any) -> bool | int | float | str:
+def _canon_scalar(v: Any) -> Scalar:
     """Canonicalize scalar value, rejecting unsupported types."""
-    if isinstance(v, (bool, int, float, str)):
+    if isinstance(v, bool):
         return v
-    raise ContractViolationError(f"Unsupported param type: {type(v).__name__}")
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        if not math.isfinite(v):
+            raise ContractViolationError(f"Non-finite float in params: {v}")
+        return v
+    if isinstance(v, str):
+        return v
+    raise ContractViolationError(f"Non-scalar param type: {type(v).__name__}")
 
 
 def make_param_id(params: dict) -> str:
-    """Generate stable, namespaced parameter ID."""
-    # Sorted, canonical scalars only
-    canon = {k: _canon_scalar(params[k]) for k in sorted(params)}
+    """Generate stable parameter ID.
     
-    # Namespace to lock schema version
-    s = "contracts:param:v1|" + json.dumps(canon, separators=(",", ":"), ensure_ascii=False)
-    
-    # BLAKE2b 256-bit for stability
-    return hashlib.blake2b(s.encode("utf-8"), digest_size=32).hexdigest()
+    Uses provenance module for consistency.
+    """
+    from .provenance import make_param_id as _make_param_id
+    return _make_param_id(params)
 
 
 def _approx_size(obj: Mapping[str, Any]) -> int:
@@ -58,7 +66,7 @@ def _approx_size(obj: Mapping[str, Any]) -> int:
 @dataclass(frozen=True)
 class UniqueParameterSet:
     """Immutable parameter set with stable ID."""
-    params: Mapping[str, float | int | str | bool]
+    params: Mapping[str, Scalar]
     param_id: str
     
     def __post_init__(self):

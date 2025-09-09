@@ -9,7 +9,9 @@ from modelops_contracts import (
     Scalar,
     TableIPC,
     SimReturn,
+    TableArtifact,
     FutureLike,
+    SimTask,
 )
 
 
@@ -18,38 +20,65 @@ def test_simulation_service_protocol():
     
     # Create a minimal implementation
     class MockSimService:
-        def submit(self, fn_ref: str, params: dict[str, Scalar], seed: int, *, bundle_ref: str) -> FutureLike:
-            return f"future_{fn_ref}_{seed}"
+        def submit(self, task: SimTask) -> FutureLike:
+            return f"future_{str(task.entrypoint)}_{task.seed}"
         
-        def submit_batch(self, fn_ref: str, params_list: list[dict[str, Scalar]], 
-                         seeds: list[int], *, bundle_ref: str) -> list[FutureLike]:
-            return [f"future_{fn_ref}_{seed}" for seed in seeds]
+        def submit_batch(self, tasks: list[SimTask]) -> list[FutureLike]:
+            return [f"future_{str(t.entrypoint)}_{t.seed}" for t in tasks]
         
-        def submit_replicates(self, fn_ref: str, params: dict[str, Scalar],
-                              seed: int, *, bundle_ref: str, 
-                              n_replicates: int) -> list[FutureLike]:
-            return [f"future_{fn_ref}_{seed}_{i}" for i in range(n_replicates)]
+        def submit_replicates(self, base_task: SimTask, n_replicates: int) -> list[FutureLike]:
+            return [f"future_{str(base_task.entrypoint)}_{base_task.seed}_{i}" for i in range(n_replicates)]
         
         def gather(self, futures: list[FutureLike]) -> list[SimReturn]:
-            # Return empty results in same order as futures
-            return [{} for _ in futures]
+            # Return mock SimReturn objects
+            mock_data = b"mock_data" * 10
+            output = TableArtifact(
+                size=len(mock_data),
+                inline=mock_data,
+                checksum="a" * 64
+            )
+            return [
+                SimReturn(
+                    task_id=f"task_{i}",
+                    sim_root="b" * 64,
+                    outputs={"result": output}
+                )
+                for i, _ in enumerate(futures)
+            ]
         
         def gather_and_aggregate(self, futures: list[FutureLike],
                                  aggregator) -> SimReturn:
             results = self.gather(futures)
-            return aggregator(results)
+            if callable(aggregator):
+                return aggregator(results)
+            # If string ref, just return first result as mock
+            return results[0] if results else SimReturn(
+                task_id="aggregated",
+                sim_root="c" * 64,
+                outputs={"aggregated": TableArtifact(
+                    size=len(b"aggregated_data" * 3),
+                    inline=b"aggregated_data" * 3,
+                    checksum="d" * 64
+                )}
+            )
     
     # Should satisfy the protocol
     service = MockSimService()
     assert isinstance(service, SimulationService)
     
     # Test basic usage
-    future = service.submit("pkg.mod:func", {"x": 1.0}, 42, bundle_ref="bundle:v1")
-    assert future == "future_pkg.mod:func_42"
+    task = SimTask(
+        bundle_ref="sha256:abcdef1234567890123456789012345678",
+        entrypoint="pkg.mod.Func/baseline@abcdef123456",
+        params=UniqueParameterSet.from_dict({"x": 1.0}),
+        seed=42
+    )
+    future = service.submit(task)
+    assert future == "future_pkg.mod.Func/baseline@abcdef123456_42"
     
     results = service.gather([future, future])
     assert len(results) == 2
-    assert all(isinstance(r, dict) for r in results)
+    assert all(isinstance(r, SimReturn) for r in results)
 
 
 def test_adaptive_algorithm_protocol():
@@ -115,14 +144,31 @@ def test_sim_types():
     table_data: TableIPC = b"arrow_ipc_data"
     assert isinstance(table_data, bytes)
     
-    # SimReturn is a mapping of string to bytes
-    sim_return: SimReturn = {
-        "infected": b"table1_data",
-        "deaths": b"table2_data"
-    }
-    assert isinstance(sim_return, dict)
-    assert all(isinstance(k, str) for k in sim_return.keys())
-    assert all(isinstance(v, bytes) for v in sim_return.values())
+    # SimReturn is now a proper dataclass
+    data1 = b"table1_data" * 8
+    output1 = TableArtifact(
+        size=len(data1),
+        inline=data1,
+        checksum="e" * 64
+    )
+    data2 = b"table2_data" * 16
+    output2 = TableArtifact(
+        size=len(data2),
+        inline=data2,
+        checksum="f" * 64
+    )
+    sim_return = SimReturn(
+        task_id="test_task",
+        sim_root="0" * 64,
+        outputs={
+            "infected": output1,
+            "deaths": output2
+        }
+    )
+    assert isinstance(sim_return, SimReturn)
+    assert sim_return.task_id == "test_task"
+    assert len(sim_return.outputs) == 2
+    assert all(isinstance(v, TableArtifact) for v in sim_return.outputs.values())
     
     # FutureLike is Any - accepts anything
     future: FutureLike = "any_object"
@@ -135,22 +181,38 @@ def test_protocol_ordering_guarantee():
     """Test that gather preserves order as documented."""
     
     class OrderPreservingService:
-        def submit(self, fn_ref: str, params: dict[str, Scalar], seed: int, *, bundle_ref: str) -> FutureLike:
-            return (fn_ref, seed)
+        def submit(self, task: SimTask) -> FutureLike:
+            return (str(task.entrypoint), task.seed)
         
         def gather(self, futures: list[FutureLike]) -> list[SimReturn]:
             # Must return in same order
-            return [{f"result_{i}": b"data"} for i, _ in enumerate(futures)]
+            return [
+                SimReturn(
+                    task_id=f"task_{i}",
+                    sim_root="1" * 64,
+                    outputs={f"result_{i}": TableArtifact(
+                        size=4,
+                        inline=b"data",
+                        checksum="2" * 64
+                    )}
+                )
+                for i, _ in enumerate(futures)
+            ]
     
     service = OrderPreservingService()
-    futures = [
-        service.submit("fn1", {}, 1, bundle_ref="b"),
-        service.submit("fn2", {}, 2, bundle_ref="b"),
-        service.submit("fn3", {}, 3, bundle_ref="b"),
+    tasks = [
+        SimTask(
+            bundle_ref="sha256:b123456789012345678901234567890123",
+            entrypoint=f"pkg.Fn{i}/baseline@b12345678901",
+            params=UniqueParameterSet.from_dict({}),
+            seed=i
+        )
+        for i in range(1, 4)
     ]
+    futures = [service.submit(task) for task in tasks]
     
     results = service.gather(futures)
     assert len(results) == 3
-    assert "result_0" in results[0]
-    assert "result_1" in results[1]
-    assert "result_2" in results[2]
+    assert "result_0" in results[0].outputs
+    assert "result_1" in results[1].outputs
+    assert "result_2" in results[2].outputs
