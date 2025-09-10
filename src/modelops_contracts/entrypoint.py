@@ -102,25 +102,40 @@ def validate_entrypoint_matches_bundle(eid: EntryPointId, bundle_ref: str) -> No
     
     Args:
         eid: EntryPointId to validate
-        bundle_ref: Bundle reference like 'sha256:abcdef...'
+        bundle_ref: Bundle reference like 'sha256:abcdef...' or 'local://dev'
     
     Raises:
         EntrypointFormatError: If validation fails
     """
     _, _, digest12 = parse_entrypoint(eid)
     
-    try:
-        algo, full_hex = bundle_ref.split(":", 1)
-    except ValueError as e:
-        raise EntrypointFormatError(f"Invalid bundle_ref format: {bundle_ref}") from e
+    if bundle_ref.startswith("sha256:"):
+        # Strict validation for real bundles
+        try:
+            algo, full_hex = bundle_ref.split(":", 1)
+        except ValueError as e:
+            raise EntrypointFormatError(f"Invalid bundle_ref format: {bundle_ref}") from e
+        
+        if not full_hex.startswith(digest12):
+            raise EntrypointFormatError(
+                f"Entrypoint digest '{digest12}' doesn't match bundle_ref prefix '{full_hex[:DIGEST_PREFIX_LEN]}'"
+            )
     
-    if algo not in ("sha256",):
-        raise EntrypointFormatError(f"Unsupported digest algorithm: {algo}")
+    elif bundle_ref.startswith("local://"):
+        # TODO(MVP): Implement proper workspace digest validation
+        # PLACEHOLDER: For MVP, accept any valid 12-char hex digest
+        # Future: Validate against computed workspace digest (git + uv.lock)
+        if not re.match(r'^[0-9a-f]{12}$', digest12):
+            raise EntrypointFormatError(f"Local digest must be 12 hex chars, got: {digest12}")
+        
+        # TODO(MVP): Check if digest is all-zeros and enforce cache-write disabled
+        # if digest12 == "000000000000" and cache_writes_enabled():
+        #     raise EntrypointFormatError("All-zeros digest requires cache writes disabled")
     
-    if not full_hex.startswith(digest12):
-        raise EntrypointFormatError(
-            f"Entrypoint digest '{digest12}' doesn't match bundle_ref prefix '{full_hex[:DIGEST_PREFIX_LEN]}'"
-        )
+    else:
+        # Only sha256: and local:// are supported for MVP
+        # TODO(MVP): Add support for oci://, s3://, etc.
+        raise EntrypointFormatError(f"Unknown bundle_ref scheme: {bundle_ref}")
 
 
 def is_entrypoint_for_bundle(eid: EntryPointId, bundle_ref: str) -> bool:

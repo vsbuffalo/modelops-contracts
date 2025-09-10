@@ -46,48 +46,29 @@ from .errors import ContractViolationError
 __version__ = CONTRACTS_VERSION
 
 __all__ = [
-    # Core types
+    # Version
     "CONTRACTS_VERSION",
-    "Scalar",
-    "TrialStatus",
+    # Core task specification (ESSENTIAL - not internal!)
+    "SimTask",
     "UniqueParameterSet",
-    "SeedInfo", 
-    "TrialResult",
-    "make_param_id",
-    "MAX_DIAG_BYTES",
+    "SeedInfo",
     # Protocols
+    "SimulationService",
     "AdaptiveAlgorithm",
     "AlgorithmAdapter",  # Backward compat alias
-    "SimulationService",
-    "SimulationFunction",
-    "AggregatorFunction",
-    # Sim types
-    "Scalar",
-    "TableIPC",
-    "FutureLike",
-    # Task and artifact types
-    "SimTask",
-    "TableArtifact",
+    # Results and status
+    "TrialStatus",
+    "TrialResult",
     "SimReturn",
+    "TableArtifact",
     "INLINE_CAP",
-    # Provenance
-    "ProvenanceLeaf",
-    "sim_root",
-    "sim_root_from_parts",
-    "task_id_from_parts",
-    "calib_root",
-    "canonical_json",
-    "digest_bytes",
-    "shard",
-    # Entrypoint
-    "EntryPointId",
-    "DIGEST_PREFIX_LEN",
-    "ENTRYPOINT_GRAMMAR_VERSION",
-    "EntrypointFormatError",
+    "MAX_DIAG_BYTES",
+    # Entrypoint utilities
     "format_entrypoint",
     "parse_entrypoint",
     "validate_entrypoint_matches_bundle",
-    "is_entrypoint_for_bundle",
+    # Parameter utilities
+    "make_param_id",
     # Errors
     "ContractViolationError",
 ]

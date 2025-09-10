@@ -173,13 +173,9 @@ def test_validate_entrypoint_matches_bundle():
     with pytest.raises(EntrypointFormatError, match="doesn't match bundle_ref prefix"):
         validate_entrypoint_matches_bundle(eid, "sha256:fedcba0987654321")
     
-    # Invalid bundle_ref format
-    with pytest.raises(EntrypointFormatError, match="Invalid bundle_ref format"):
+    # Unknown bundle_ref scheme
+    with pytest.raises(EntrypointFormatError, match="Unknown bundle_ref scheme"):
         validate_entrypoint_matches_bundle(eid, "not-a-valid-ref")
-    
-    # Unsupported algorithm in bundle
-    with pytest.raises(EntrypointFormatError, match="Unsupported digest algorithm"):
-        validate_entrypoint_matches_bundle(eid, "sha512:abcdef1234567890")
 
 
 def test_is_entrypoint_for_bundle():
