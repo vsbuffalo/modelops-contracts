@@ -69,12 +69,12 @@ def test_simulation_service_protocol():
     # Test basic usage
     task = SimTask(
         bundle_ref="sha256:abcdef1234567890123456789012345678",
-        entrypoint="pkg.mod.Func/baseline@abcdef123456",
+        entrypoint="pkg.mod.Func/baseline",
         params=UniqueParameterSet.from_dict({"x": 1.0}),
         seed=42
     )
     future = service.submit(task)
-    assert future == "future_pkg.mod.Func/baseline@abcdef123456_42"
+    assert future == "future_pkg.mod.Func/baseline_42"
     
     results = service.gather([future, future])
     assert len(results) == 2
@@ -203,7 +203,7 @@ def test_protocol_ordering_guarantee():
     tasks = [
         SimTask(
             bundle_ref="sha256:b123456789012345678901234567890123",
-            entrypoint=f"pkg.Fn{i}/baseline@b12345678901",
+            entrypoint=f"pkg.Fn{i}/baseline",
             params=UniqueParameterSet.from_dict({}),
             seed=i
         )

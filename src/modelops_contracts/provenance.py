@@ -150,7 +150,7 @@ def compute_root(leaves: Sequence[ProvenanceLeaf]) -> str:
     return digest_bytes(canonical_json(payload))
 
 
-def sim_root_from_parts(
+def sim_root(
     *,
     bundle_ref: str,
     params: dict[str, Any],
@@ -175,10 +175,10 @@ def sim_root_from_parts(
     Returns:
         64-character hex string hash
     """
-    # Parse scenario from entrypoint if it's the new format
+    # Parse scenario from entrypoint
     try:
         from .entrypoint import parse_entrypoint, EntryPointId
-        _, scenario_name, _ = parse_entrypoint(EntryPointId(entrypoint))
+        _, scenario_name = parse_entrypoint(EntryPointId(entrypoint))
     except:
         # Fallback for testing or legacy
         scenario_name = "baseline"
@@ -273,7 +273,7 @@ def make_param_id(params: dict) -> str:
     return digest_bytes(namespaced.encode("utf-8"))
 
 
-def task_id_from_parts(
+def task_id(
     *,
     sim_root: str,
     entrypoint: str,
@@ -304,9 +304,6 @@ def task_id_from_parts(
     return digest_bytes(canonical_json(payload))
 
 
-# Keep sim_root as alias for backward compatibility
-sim_root = sim_root_from_parts
-
 
 __all__ = [
     # Types
@@ -322,8 +319,7 @@ __all__ = [
     "compute_root",
     # Root computation
     "sim_root",
-    "sim_root_from_parts",
-    "task_id_from_parts",
+    "task_id",
     "calib_root",
     # Utilities
     "shard",

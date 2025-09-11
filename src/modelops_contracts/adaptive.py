@@ -70,7 +70,4 @@ class AdaptiveAlgorithm(Protocol):
         ...
 
 
-# Backward compatibility alias
-AlgorithmAdapter = AdaptiveAlgorithm
-
-__all__ = ["AdaptiveAlgorithm", "AlgorithmAdapter"]
+__all__ = ["AdaptiveAlgorithm"]

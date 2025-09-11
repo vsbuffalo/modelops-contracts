@@ -11,10 +11,9 @@ from .entrypoint import (
     EntryPointId, 
     parse_entrypoint, 
     EntrypointFormatError, 
-    format_entrypoint,
-    validate_entrypoint_matches_bundle
+    format_entrypoint
 )
-from .provenance import sim_root_from_parts, task_id_from_parts
+from .provenance import sim_root, task_id
 from .errors import ContractViolationError
 
 # Core types for simulation interface
@@ -65,11 +64,6 @@ class SimTask:
             except EntrypointFormatError as e:
                 raise ContractViolationError(f"Invalid entrypoint format: {e}") from e
         
-        # Validate entrypoint matches bundle_ref
-        try:
-            validate_entrypoint_matches_bundle(self.entrypoint, self.bundle_ref)
-        except EntrypointFormatError as e:
-            raise ContractViolationError(str(e)) from e
         if not isinstance(self.params, UniqueParameterSet):
             raise ContractViolationError(
                 f"params must be UniqueParameterSet, got {type(self.params).__name__}"
@@ -99,7 +93,7 @@ class SimTask:
         parameters, seed, scenario, config, and env. It EXCLUDES outputs 
         to enable cache reuse when different outputs are requested.
         """
-        return sim_root_from_parts(
+        return sim_root(
             bundle_ref=self.bundle_ref,
             params=dict(self.params.params),  # Convert MappingProxy to dict
             seed=self.seed,
@@ -115,7 +109,7 @@ class SimTask:
         and the specific outputs requested, making it unique for
         each materialization request.
         """
-        return task_id_from_parts(
+        return task_id(
             sim_root=self.sim_root(),
             entrypoint=str(self.entrypoint),
             outputs=self.outputs
@@ -144,7 +138,6 @@ class SimTask:
         - Automatically formats the entrypoint from import_path and scenario
         - Computes param_id from params dict automatically
         - Sorts outputs for deterministic behavior
-        - Validates entrypoint matches bundle_ref
         - Cleaner API for test code and programmatic task creation
         
         The raw constructor still exists for cases where you already have a
@@ -175,15 +168,7 @@ class SimTask:
             ... )
         """
         # Format the entrypoint from components
-        if bundle_ref.startswith("local://"):
-            # TODO(MVP): Compute proper workspace digest from git + uv.lock
-            # PLACEHOLDER: Use all-zeros digest for local development
-            # Future: workspace_digest = compute_workspace_digest()
-            workspace_digest = "000000000000"
-            entrypoint = EntryPointId(f"{import_path}/{scenario}@{workspace_digest}")
-        else:
-            # Use standard formatting for real bundles
-            entrypoint = format_entrypoint(import_path, scenario, bundle_ref)
+        entrypoint = format_entrypoint(import_path, scenario)
         
         # Create with auto-generated param_id
         return cls(
@@ -196,61 +181,6 @@ class SimTask:
             env=env,
         )
     
-    @classmethod
-    def from_entrypoint(
-        cls,
-        *,
-        entrypoint: Union[str, EntryPointId],
-        bundle_ref: str,
-        params: Mapping[str, Any],
-        seed: int,
-        outputs: Optional[Sequence[str]] = None,
-        config: Optional[Mapping[str, Any]] = None,
-        env: Optional[Mapping[str, Any]] = None,
-    ) -> "SimTask":
-        """Create SimTask when you already have a formatted EntryPointId.
-        
-        This factory is useful when deserializing tasks from configuration files,
-        databases, or other systems where the entrypoint is already formatted.
-        It still validates that the entrypoint matches the bundle_ref to ensure
-        consistency.
-        
-        Args:
-            entrypoint: Pre-formatted EntryPointId string like 'pkg.Class/scenario@digest12'
-            bundle_ref: Full OCI bundle reference (must match entrypoint digest)
-            params: Parameter dictionary that will be used to create UniqueParameterSet
-            seed: Random seed for reproducibility (0 to 2^64-1)
-            outputs: Optional list of specific outputs to extract (None = all outputs)
-            config: Optional runtime configuration patches
-            env: Optional environment settings
-            
-        Returns:
-            New SimTask instance with validated entrypoint
-            
-        Raises:
-            ContractViolationError: If entrypoint doesn't match bundle_ref
-            
-        Example:
-            >>> task = SimTask.from_entrypoint(
-            ...     entrypoint="covid.models.SEIR/baseline@abc123def456",
-            ...     bundle_ref="sha256:abc123def456789...",
-            ...     params={"R0": 2.5},
-            ...     seed=42
-            ... )
-        """
-        # Ensure it's an EntryPointId (NewType is just a string at runtime)
-        entrypoint = EntryPointId(str(entrypoint))
-        
-        # Validation will happen in __post_init__
-        return cls(
-            bundle_ref=bundle_ref,
-            entrypoint=entrypoint,
-            params=UniqueParameterSet.from_dict(dict(params)),
-            seed=seed,
-            outputs=tuple(sorted(outputs)) if outputs else None,
-            config=dict(config) if config else None,
-            env=dict(env) if env else None,
-        )
 
 
 # Function protocols for typed contracts

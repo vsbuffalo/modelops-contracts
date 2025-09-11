@@ -246,7 +246,7 @@ def test_sim_root():
     config = {"max_iter": 1000}
     seed = 42
     bundle_ref = "sha256:abc123456789012345678901234567890"
-    entrypoint = "model.Main/baseline@abc123456789"
+    entrypoint = "model.Main/baseline"
     env = {"python": "3.11"}
     
     root = sim_root(
@@ -288,7 +288,7 @@ def test_sim_root():
         bundle_ref=bundle_ref,
         params=params,
         seed=seed,
-        entrypoint="model.Main/high_growth@abc123456789",  # Different scenario
+        entrypoint="model.Main/high_growth",  # Different scenario
         config=config,
         env=env
     )
