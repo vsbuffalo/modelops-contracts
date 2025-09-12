@@ -8,8 +8,6 @@ from modelops_contracts import (
     SeedInfo,
     ContractViolationError,
     make_param_id,
-    AdaptiveAlgorithm,
-    MAX_DIAG_BYTES,
 )
 
 

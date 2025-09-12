@@ -136,7 +136,7 @@ def compute_root(leaves: Sequence[ProvenanceLeaf]) -> str:
     3. Hashing the result
     """
     # Sort for determinism
-    sorted_leaves = sorted(leaves, key=lambda l: (l.kind, l.name))
+    sorted_leaves = sorted(leaves, key=lambda leaf: (leaf.kind, leaf.name))
     
     # Create canonical representation
     payload = {
@@ -179,7 +179,7 @@ def sim_root(
     try:
         from .entrypoint import parse_entrypoint, EntryPointId
         _, scenario_name = parse_entrypoint(EntryPointId(entrypoint))
-    except:
+    except Exception:
         # Fallback for testing or legacy
         scenario_name = "baseline"
     

@@ -1,12 +1,10 @@
 """Tests for simulation task specification."""
 
 import pytest
-from types import MappingProxyType
 from modelops_contracts import (
     SimTask,
     UniqueParameterSet,
     ContractViolationError,
-    EntryPointId,
 )
 
 

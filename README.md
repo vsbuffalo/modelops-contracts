@@ -16,15 +16,9 @@ pip install modelops-contracts[dev]
 ### Creating Simulation Tasks
 
 ```python
-from modelops_contracts import (
-    SimTask,
-    UniqueParameterSet,
-    TrialResult,
-    TrialStatus,
-    CONTRACTS_VERSION,
-)
+from modelops_contracts import SimTask, UniqueParameterSet
 
-# Create a simulation task
+# Create a simulation task using factory method
 task = SimTask.from_components(
     import_path="covid.models.SEIR",
     scenario="baseline",
@@ -34,11 +28,11 @@ task = SimTask.from_components(
     outputs=["infections", "deaths"]
 )
 
-# Or create from a pre-formatted entrypoint
-task = SimTask.from_entrypoint(
-    entrypoint="covid.models.SEIR/baseline@abc123def456",
+# Or create directly with constructor
+task = SimTask(
+    entrypoint="covid.models.SEIR/baseline",  # Note: no @digest suffix
     bundle_ref="sha256:abc123def456789...",
-    params={"R0": 2.5},
+    params=UniqueParameterSet.from_dict({"R0": 2.5}),
     seed=42
 )
 ```
@@ -46,6 +40,8 @@ task = SimTask.from_entrypoint(
 ### Working with Results
 
 ```python
+from modelops_contracts import TrialResult, TrialStatus, UniqueParameterSet
+
 # Create parameter set with stable ID
 params = UniqueParameterSet.from_dict({"learning_rate": 0.01, "batch_size": 32})
 
@@ -58,11 +54,66 @@ result = TrialResult(
 )
 ```
 
-## Dependency Rules
+### Hexagonal Architecture Ports
 
-- **ModelOps**: May import from modelops_contracts only
-- **Calabaria**: May import from modelops_contracts only  
-- **Contracts**: Zero heavy dependencies (no NumPy, Polars, Optuna, etc.)
+The contracts now include port definitions for clean hexagonal architecture:
+
+```python
+from modelops_contracts import (
+    Future,
+    SimulationServicePort,
+    ExecutionEnvironment,
+    BundleRepository,
+    CAS,
+    WireFunction
+)
+
+# Implement the ExecutionEnvironment port
+class MyExecutionEnv:
+    def run(self, task: SimTask) -> SimReturn:
+        # Execute simulation
+        pass
+    
+    def health_check(self) -> dict:
+        return {"status": "healthy"}
+    
+    def shutdown(self) -> None:
+        # Clean up resources (critical for WorkerPlugin lifecycle)
+        pass
+```
+
+## Key Contracts
+
+### Core Types
+
+- **SimTask**: Specification for simulation tasks
+  - Use `SimTask.from_components()` factory for programmatic creation
+  - Entrypoint format: `"module.Class/scenario"` (no digest suffix)
+  
+- **UniqueParameterSet**: Parameters with stable content-based ID
+
+- **SimReturn**: Results from completed simulation with outputs
+
+- **TableArtifact**: Extracted table output (Arrow IPC format)
+
+### Protocols (Ports)
+
+- **SimulationService**: Primary port for submitting simulations
+  - `submit()`, `gather()`, `submit_batch()`
+
+- **ExecutionEnvironment**: Port for executing simulations
+  - `run()`, `health_check()`, `shutdown()`
+
+- **BundleRepository**: Port for fetching simulation bundles
+  - `ensure_local()`, `exists()`
+
+- **CAS**: Content-addressable storage for large artifacts
+  - `put()`, `get()`, `exists()`
+
+- **WireFunction**: Low-level execution contract for isolated workers
+
+- **AdaptiveAlgorithm**: Ask-tell interface for optimization
+  - `ask()`, `tell()`, `finished()`
 
 ## Contract Guarantees
 
@@ -71,34 +122,28 @@ result = TrialResult(
 - **Size limits**: Diagnostics must be < 64KB when JSON-serialized
 - **Seed range**: Seeds are validated to be within uint64 range (0 to 2^64-1)
 - **Immutability**: All contract types are frozen dataclasses with deeply immutable fields
-- **Entrypoint validation**: Bundle references and entrypoint digests are validated to match
+- **Entrypoint format**: Simple `"module.Class/scenario"` format without digest
+
+## Dependency Rules
+
+- **ModelOps**: May import from modelops_contracts only
+- **Calabaria**: May import from modelops_contracts only  
+- **Contracts**: Zero heavy dependencies (no NumPy, Polars, Optuna, etc.)
 
 ## Version
 
-Current version: 0.2.0
+Current version: 0.3.0
 
-Breaking changes from 0.1.0:
+### Breaking changes from 0.2.0:
+- Entrypoint format simplified (removed `@digest12` suffix)
+- Removed `SimTask.from_entrypoint()` factory method
+- Added ports module for hexagonal architecture
+- Cleaned up exports (removed internal types)
+
+### Breaking changes from 0.1.0:
 - SimTask shape changed (scenario now embedded in entrypoint)
 - Two-root provenance model (sim_root vs task_id)
 - TrialStatus.OK renamed to TrialStatus.COMPLETED
-
-## Key Contracts
-
-### SimTask
-Core specification for simulation tasks. Use factory methods for creation:
-- `SimTask.from_components()`: Build from individual parts (preferred)
-- `SimTask.from_entrypoint()`: Use pre-formatted entrypoint string
-
-### SimulationService Protocol
-Implemented by execution backends (Dask, Ray, local). Provides:
-- `submit(task)`: Submit single task
-- `submit_batch(tasks)`: Submit multiple tasks
-- `gather(futures)`: Collect results
-
-### Adaptive Algorithms
-Ask-tell interface for optimization:
-- `ask(n)`: Request n parameter sets to evaluate
-- `tell(results)`: Report evaluation results
 
 ## Development
 

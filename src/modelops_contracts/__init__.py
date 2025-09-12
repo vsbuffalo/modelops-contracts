@@ -13,12 +13,7 @@ from .types import (
 from .adaptive import AdaptiveAlgorithm
 from .simulation import (
     SimTask,
-    SimulationService,
-    SimulationFunction,
-    AggregatorFunction,
-    Scalar,
     TableIPC,
-    FutureLike,
 )
 from .artifacts import TableArtifact, SimReturn, INLINE_CAP
 from .provenance import (
@@ -38,6 +33,14 @@ from .entrypoint import (
     parse_entrypoint,
 )
 from .errors import ContractViolationError
+from .ports import (
+    Future,
+    SimulationService,
+    ExecutionEnvironment,
+    BundleRepository,
+    CAS,
+    WireFunction,
+)
 
 __version__ = CONTRACTS_VERSION
 
@@ -48,8 +51,10 @@ __all__ = [
     "SimTask",
     "UniqueParameterSet",
     "SeedInfo",
+    # Type aliases
+    "Scalar",
+    "TableIPC",
     # Protocols
-    "SimulationService",
     "AdaptiveAlgorithm",
     # Results and status
     "TrialStatus",
@@ -59,10 +64,28 @@ __all__ = [
     "INLINE_CAP",
     "MAX_DIAG_BYTES",
     # Entrypoint utilities
+    "EntryPointId",
+    "ENTRYPOINT_GRAMMAR_VERSION",
+    "EntrypointFormatError",
     "format_entrypoint",
     "parse_entrypoint",
+    # Provenance utilities
+    "ProvenanceLeaf",
+    "sim_root",
+    "task_id",
+    "calib_root",
+    "canonical_json",
+    "digest_bytes",
+    "shard",
     # Parameter utilities
     "make_param_id",
     # Errors
     "ContractViolationError",
+    # Ports (for hexagonal architecture)
+    "Future",
+    "SimulationService",
+    "ExecutionEnvironment",
+    "BundleRepository",
+    "CAS",
+    "WireFunction",
 ]

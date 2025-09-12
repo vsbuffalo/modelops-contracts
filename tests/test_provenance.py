@@ -1,8 +1,6 @@
 """Tests for provenance computation."""
 
 import pytest
-import json
-import math
 from modelops_contracts import (
     ProvenanceLeaf,
     sim_root,

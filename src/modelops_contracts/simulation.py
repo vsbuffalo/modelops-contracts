@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, Sequence, Any, Protocol, Callable, Union, runtime_checkable, Mapping
+from typing import Optional, Sequence, Any, Mapping, Union
 from types import MappingProxyType
 
 from .types import UniqueParameterSet
-from .artifacts import SimReturn
 from .entrypoint import (
     EntryPointId, 
     parse_entrypoint, 
@@ -17,9 +16,8 @@ from .provenance import sim_root, task_id
 from .errors import ContractViolationError
 
 # Core types for simulation interface
-Scalar = bool | int | float | str
+from .types import Scalar
 TableIPC = bytes  # Arrow IPC or Parquet bytes for tabular data
-FutureLike = Any  # Opaque future type to avoid executor coupling
 
 
 @dataclass(frozen=True)
@@ -183,111 +181,10 @@ class SimTask:
     
 
 
-# Function protocols for typed contracts
-class SimulationFunction(Protocol):
-    """Type signature for simulation functions.
-    
-    Matches Calabaria's BaseModel.simulate() signature.
-    """
-    def __call__(self, params: dict[str, Scalar], seed: int) -> SimReturn: ...
-
-class AggregatorFunction(Protocol):
-    """Type signature for aggregator functions.
-    
-    Used for operations like computing mean, median, or quantiles across
-    multiple simulation replicates.
-    """
-    def __call__(self, results: list[SimReturn]) -> SimReturn: ...
-
-
-@runtime_checkable
-class SimulationService(Protocol):
-    """Protocol for simulation execution services.
-    
-    Implementations may use Dask, Ray, multiprocessing, or threads.
-    Large outputs should be written to object store by user code;
-    SimReturn is for small tabular results only.
-    """
-    
-    def submit(self, task: SimTask) -> FutureLike:
-        """Submit a simulation task for execution.
-        
-        Args:
-            task: SimTask specification containing all execution parameters
-            
-        Returns:
-            An opaque future-like object
-        """
-        ...
-    
-    def submit_batch(self, tasks: list[SimTask]) -> list[FutureLike]:
-        """Submit multiple simulation tasks (e.g., for optimization).
-        
-        Each task has its own UniqueParameterSet for tracking with param_id.
-        Seeds can be derived deterministically or specified per task.
-        
-        Args:
-            tasks: List of SimTask specifications
-            
-        Returns:
-            List of futures, one per task
-        """
-        ...
-    
-    def submit_replicates(self, base_task: SimTask, n_replicates: int) -> list[FutureLike]:
-        """Submit multiple replicates of the same task.
-        
-        Implementations should derive replicate seeds deterministically
-        from the base task's seed to ensure reproducibility. Recommended to use
-        numpy.random.SeedSequence internally for high-quality seed derivation.
-        
-        Args:
-            base_task: Base SimTask to replicate
-            n_replicates: Number of replicates to run
-            
-        Returns:
-            List of futures, one per replicate
-        """
-        ...
-    
-    def gather(self, futures: list[FutureLike]) -> list[SimReturn]:
-        """Gather results from submitted simulations.
-        
-        Returns results in the same order as the input futures.
-        
-        Returns:
-            List of simulation results (named table dictionaries)
-        """
-        ...
-    
-    def gather_and_aggregate(self, futures: list[FutureLike],
-                             aggregator: Union[str, AggregatorFunction]) -> SimReturn:
-        """Gather results and aggregate them.
-        
-        The aggregator can run on the cluster (e.g., Dask) or locally depending
-        on implementation. This enables efficient reduction operations.
-        
-        Args:
-            futures: List of futures to gather
-            aggregator: Either:
-                - String reference like "module:function" for distributed execution
-                - AggregatorFunction callable for local execution
-            
-        Returns:
-            Aggregated result
-        """
-        ...
-
-
 __all__ = [
     # Core types
     "Scalar",
     "TableIPC",
-    "FutureLike",
     # Task specification
     "SimTask",
-    # Service protocol
-    "SimulationService",
-    "SimulationFunction",
-    "AggregatorFunction",
 ]
