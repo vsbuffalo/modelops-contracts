@@ -15,7 +15,7 @@ from .simulation import (
     SimTask,
     TableIPC,
 )
-from .artifacts import TableArtifact, SimReturn, INLINE_CAP
+from .artifacts import TableArtifact, SimReturn, ErrorInfo, INLINE_CAP
 from .provenance import (
     ProvenanceLeaf,
     sim_root,
@@ -60,6 +60,7 @@ __all__ = [
     "TrialStatus",
     "TrialResult",
     "SimReturn",
+    "ErrorInfo",
     "TableArtifact",
     "INLINE_CAP",
     "MAX_DIAG_BYTES",

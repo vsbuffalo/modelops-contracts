@@ -74,6 +74,18 @@ class TableArtifact:
 
 
 @dataclass(frozen=True)
+class ErrorInfo:
+    """Semantic error information for quick inspection.
+    
+    Minimal structured error metadata for understanding failures
+    without needing to fetch/decode full error artifacts.
+    """
+    error_type: str          # e.g., "ModuleNotFoundError", "ValueError"
+    message: str             # Brief error description
+    retryable: bool = False  # Whether retry might succeed
+
+
+@dataclass(frozen=True)
 class SimReturn:
     """Results from completed simulation task.
     
@@ -84,6 +96,8 @@ class SimReturn:
         task_id: ID of the SimTask that produced this result
         sim_root: Provenance hash for reproducibility verification
         outputs: Map of extractor names to table artifacts
+        error: Optional semantic error information
+        error_details: Optional full error payload (traceback, logs, etc.)
         logs_ref: Optional CAS path to execution logs
         metrics: Optional execution metrics (runtime, memory, etc.)
         cached: Whether this result came from cache
@@ -91,6 +105,8 @@ class SimReturn:
     task_id: str
     sim_root: str
     outputs: Mapping[str, TableArtifact]
+    error: Optional[ErrorInfo] = None              # Semantic error info
+    error_details: Optional[TableArtifact] = None  # Full traceback/logs
     logs_ref: Optional[str] = None
     metrics: Optional[Mapping[str, float]] = None
     cached: bool = False
@@ -108,9 +124,13 @@ class SimReturn:
                 "sim_root must be 64-character hex string (hash)"
             )
         
-        # Validate outputs is not empty
-        if not self.outputs:
-            raise ContractViolationError("outputs must contain at least one artifact")
+        # Validate outputs: must be non-empty unless there's an error
+        if not self.outputs and not self.error:
+            raise ContractViolationError("outputs must contain at least one artifact (unless error is present)")
+        
+        # If error is present, validate error_details is also present
+        if self.error and not self.error_details:
+            raise ContractViolationError("error_details must be provided when error is present")
         
         # Validate all outputs are TableArtifacts
         for name, artifact in self.outputs.items():
