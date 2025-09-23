@@ -99,6 +99,7 @@ class ExecutionEnvironment(Protocol):
     - Container-based
     - Remote execution
     """
+    # TODO: need aggregation support here too?
     
     def run(self, task: SimTask) -> SimReturn:
         """Execute a simulation task in the environment.

@@ -7,24 +7,15 @@ from .types import (
     UniqueParameterSet,
     SeedInfo,
     TrialResult,
-    make_param_id,
     MAX_DIAG_BYTES,
 )
+from .param_hashing import make_param_id
 from .adaptive import AdaptiveAlgorithm
 from .simulation import (
     SimTask,
     TableIPC,
 )
 from .artifacts import TableArtifact, SimReturn, ErrorInfo, INLINE_CAP
-from .provenance import (
-    ProvenanceLeaf,
-    sim_root,
-    task_id,
-    calib_root,
-    canonical_json,
-    digest_bytes,
-    shard,
-)
 from .entrypoint import (
     EntryPointId,
     ENTRYPOINT_GRAMMAR_VERSION,
@@ -70,14 +61,6 @@ __all__ = [
     "EntrypointFormatError",
     "format_entrypoint",
     "parse_entrypoint",
-    # Provenance utilities
-    "ProvenanceLeaf",
-    "sim_root",
-    "task_id",
-    "calib_root",
-    "canonical_json",
-    "digest_bytes",
-    "shard",
     # Parameter utilities
     "make_param_id",
     # Errors

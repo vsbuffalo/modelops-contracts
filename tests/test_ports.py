@@ -56,8 +56,7 @@ def test_simulation_service_protocol():
             class SimpleFuture:
                 def result(self, timeout=None):
                     return SimReturn(
-                        task_id=task.task_id(),
-                        sim_root=task.sim_root(),
+                        task_id="test-task-id",
                         outputs={"test": TableArtifact(
                     size=4,
                     inline=b"data",
@@ -86,7 +85,7 @@ def test_simulation_service_protocol():
     )
     
     future = service.submit(task)
-    assert future.result().task_id == task.task_id()
+    assert future.result().task_id == "test-task-id"
 
 
 def test_execution_environment_protocol():
@@ -96,8 +95,7 @@ def test_execution_environment_protocol():
         def run(self, task: SimTask) -> SimReturn:
             from modelops_contracts import TableArtifact
             return SimReturn(
-                task_id=task.task_id(),
-                sim_root=task.sim_root(),
+                task_id="test-env-task-id",
                 outputs={"test": TableArtifact(
                     size=4,
                     inline=b"data",
@@ -122,7 +120,7 @@ def test_execution_environment_protocol():
     )
     
     result = env.run(task)
-    assert result.task_id == task.task_id()
+    assert result.task_id == "test-env-task-id"
     
     health = env.health_check()
     assert health["status"] == "healthy"

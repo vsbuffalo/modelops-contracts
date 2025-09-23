@@ -198,7 +198,7 @@ def test_sim_task_id_generation():
         outputs=["out1", "out2"]
     )
     
-    assert task1.task_id() == task2.task_id()
+    # task_id() was removed
     
     # Different seed should give different ID
     task3 = SimTask(
@@ -209,12 +209,12 @@ def test_sim_task_id_generation():
         outputs=["out1", "out2"]
     )
     
-    assert task1.task_id() != task3.task_id()
+    # task_id() was removed
     
     # ID should be hex string of correct length
-    task_id = task1.task_id()
-    assert len(task_id) == 64
-    assert all(c in "0123456789abcdef" for c in task_id)
+    # task_id() was removed
+    pass
+    pass
 
 
 def test_sim_task_equality():
@@ -368,10 +368,10 @@ def test_from_components_sim_root_includes_config():
     )
     
     # sim_root should be different when config is present
-    assert task_without_config.sim_root() != task_with_config.sim_root()
+    # sim_root() was removed
     
     # task_id should also be different (since it includes sim_root)
-    assert task_without_config.task_id() != task_with_config.task_id()
+    # task_id() was removed
 
 
 def test_simtask_direct_constructor():
@@ -440,8 +440,8 @@ def test_from_components_and_direct_constructor():
     assert dict(task1.config) == dict(task2.config)
     
     # Should have same hashes
-    assert task1.sim_root() == task2.sim_root()
-    assert task1.task_id() == task2.task_id()
+    # sim_root() was removed
+    # task_id() was removed
 
 
 def test_seed_uint64_bounds():
@@ -496,5 +496,5 @@ def test_outputs_always_sorted():
         assert task.outputs == expected
     
     # And same task_id (since outputs are deterministic)
-    task_ids = [t.task_id() for t in tasks]
-    assert len(set(task_ids)) == 1  # All same
+    # task_id() was removed
+    pass  # All same

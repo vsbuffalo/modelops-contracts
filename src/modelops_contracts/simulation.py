@@ -9,12 +9,11 @@ import math
 
 from .types import UniqueParameterSet
 from .entrypoint import (
-    EntryPointId, 
-    parse_entrypoint, 
-    EntrypointFormatError, 
+    EntryPointId,
+    parse_entrypoint,
+    EntrypointFormatError,
     format_entrypoint
 )
-from .provenance import sim_root, task_id
 from .errors import ContractViolationError
 from .artifacts import SimReturn, TableArtifact
 
@@ -87,34 +86,6 @@ class SimTask:
             frozen_env = MappingProxyType(dict(self.env))
             object.__setattr__(self, "env", frozen_env)
     
-    def sim_root(self) -> str:
-        """Compute simulation root hash.
-        
-        The sim_root uniquely identifies the simulation based on code,
-        parameters, seed, scenario, config, and env. It EXCLUDES outputs 
-        to enable cache reuse when different outputs are requested.
-        """
-        return sim_root(
-            bundle_ref=self.bundle_ref,
-            params=dict(self.params.params),  # Convert MappingProxy to dict
-            seed=self.seed,
-            entrypoint=str(self.entrypoint),
-            config=dict(self.config) if self.config else None,
-            env=dict(self.env) if self.env else None
-        )
-    
-    def task_id(self) -> str:
-        """Compute task ID for this specific materialization.
-        
-        The task_id includes both the simulation identity (sim_root)
-        and the specific outputs requested, making it unique for
-        each materialization request.
-        """
-        return task_id(
-            sim_root=self.sim_root(),
-            entrypoint=str(self.entrypoint),
-            outputs=self.outputs
-        )
     
     @classmethod
     def from_components(
@@ -154,7 +125,7 @@ class SimTask:
             outputs: Optional list of specific outputs to extract (None = all outputs)
             config: Optional runtime configuration patches that affect simulation
             env: Optional environment settings
-            
+
         Returns:
             New SimTask instance with properly formatted entrypoint and normalized fields
             
@@ -201,14 +172,6 @@ class ReplicateSet:
             replace(self.base_task, seed=self.base_task.seed + self.seed_offset + i)
             for i in range(self.n_replicates)
         ]
-    
-    def replicate_keys(self) -> List[str]:
-        """Generate Dask keys for tracking replicates."""
-        param_id = self.base_task.params.param_id
-        return [
-            f"sim_{param_id[:8]}_{i}"
-            for i in range(self.n_replicates)
-        ]
 
 
 @dataclass(frozen=True)
@@ -241,9 +204,9 @@ class AggregationTask:
     
     def aggregation_id(self) -> str:
         """Compute unique ID for this aggregation task."""
-        # Hash based on target, number of results, and param_id
-        param_ids = [r.sim_root for r in self.sim_returns]
-        content = f"{self.target_entrypoint}:{','.join(sorted(param_ids))}"
+        # Hash based on target and task_ids of results
+        task_ids = [r.task_id for r in self.sim_returns]
+        content = f"{self.target_entrypoint}:{','.join(sorted(task_ids))}"
         return hashlib.blake2b(content.encode(), digest_size=32).hexdigest()[:16]
 
 

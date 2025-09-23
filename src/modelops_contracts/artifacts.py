@@ -94,7 +94,6 @@ class SimReturn:
     
     Attributes:
         task_id: ID of the SimTask that produced this result
-        sim_root: Provenance hash for reproducibility verification
         outputs: Map of extractor names to table artifacts
         error: Optional semantic error information
         error_details: Optional full error payload (traceback, logs, etc.)
@@ -103,7 +102,6 @@ class SimReturn:
         cached: Whether this result came from cache
     """
     task_id: str
-    sim_root: str
     outputs: Mapping[str, TableArtifact]
     error: Optional[ErrorInfo] = None              # Semantic error info
     error_details: Optional[TableArtifact] = None  # Full traceback/logs
@@ -115,14 +113,6 @@ class SimReturn:
         # Validate required fields
         if not self.task_id:
             raise ContractViolationError("task_id must be non-empty")
-        if not self.sim_root:
-            raise ContractViolationError("sim_root must be non-empty")
-        
-        # Validate sim_root format (hex string)
-        if not (len(self.sim_root) == 64 and all(c in "0123456789abcdef" for c in self.sim_root)):
-            raise ContractViolationError(
-                "sim_root must be 64-character hex string (hash)"
-            )
         
         # Validate outputs: must be non-empty unless there's an error
         if not self.outputs and not self.error:

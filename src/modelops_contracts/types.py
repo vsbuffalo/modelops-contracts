@@ -9,6 +9,7 @@ from collections.abc import Mapping as MappingABC
 from types import MappingProxyType
 
 from .errors import ContractViolationError
+from .param_hashing import make_param_id
 
 # Type definitions
 Scalar = bool | int | float | str
@@ -45,13 +46,6 @@ def _canon_scalar(v: Any) -> Scalar:
     raise ContractViolationError(f"Non-scalar param type: {type(v).__name__}")
 
 
-def make_param_id(params: dict) -> str:
-    """Generate stable parameter ID.
-    
-    Uses provenance module for consistency.
-    """
-    from .provenance import make_param_id as _make_param_id
-    return _make_param_id(params)
 
 
 def _approx_size(obj: Mapping[str, Any]) -> int:
@@ -141,9 +135,8 @@ class TrialResult:
 
 __all__ = [
     "TrialStatus",
-    "UniqueParameterSet", 
+    "UniqueParameterSet",
     "SeedInfo",
     "TrialResult",
-    "make_param_id",
     "MAX_DIAG_BYTES",
 ]

@@ -158,12 +158,10 @@ def test_sim_return_basic():
     
     result = SimReturn(
         task_id="task_abc123",
-        sim_root="6" * 64,
         outputs={"population": output1, "gdp": output2}
     )
-    
+
     assert result.task_id == "task_abc123"
-    assert result.sim_root == "6" * 64
     assert len(result.outputs) == 2
     assert result.outputs["population"] == output1
     assert result.outputs["gdp"] == output2
@@ -184,7 +182,6 @@ def test_sim_return_with_optional_fields():
     
     result = SimReturn(
         task_id="task_xyz789",
-        sim_root="8" * 64,
         outputs={"result": output},
         logs_ref="logs/sim_xyz789.log",
         metrics=metrics,
@@ -208,23 +205,6 @@ def test_sim_return_validation():
     with pytest.raises(ContractViolationError, match="task_id must be non-empty"):
         SimReturn(
             task_id="",
-            sim_root="a" * 64,
-            outputs={"out": output}
-        )
-    
-    # Empty sim_root
-    with pytest.raises(ContractViolationError, match="sim_root must be non-empty"):
-        SimReturn(
-            task_id="task_id",
-            sim_root="",
-            outputs={"out": output}
-        )
-    
-    # Invalid sim_root format
-    with pytest.raises(ContractViolationError, match="sim_root must be 64-character hex string"):
-        SimReturn(
-            task_id="task_id",
-            sim_root="not_a_hash",
             outputs={"out": output}
         )
     
@@ -232,7 +212,6 @@ def test_sim_return_validation():
     with pytest.raises(ContractViolationError, match="outputs must contain at least one artifact"):
         SimReturn(
             task_id="task_id",
-            sim_root="b" * 64,
             outputs={}
         )
     
@@ -240,7 +219,6 @@ def test_sim_return_validation():
     with pytest.raises(ContractViolationError, match="Output .* must be TableArtifact"):
         SimReturn(
             task_id="task_id",
-            sim_root="c" * 64,
             outputs={"bad": "not an artifact"}
         )
 
@@ -255,7 +233,6 @@ def test_sim_return_frozen():
     
     result = SimReturn(
         task_id="immutable_task",
-        sim_root="e" * 64,
         outputs={"data": output}
     )
     
@@ -293,7 +270,6 @@ def test_sim_return_multiple_outputs():
     
     result = SimReturn(
         task_id="multi_output_task",
-        sim_root="2" * 64,
         outputs={
             "small_table": small_output,
             "large_table": large_output,
