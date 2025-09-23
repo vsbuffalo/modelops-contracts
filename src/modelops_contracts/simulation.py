@@ -46,11 +46,49 @@ class SimTask:
     outputs: Optional[Sequence[str]] = None
     config: Optional[Mapping[str, Any]] = None
     env: Optional[Mapping[str, Any]] = None
-    
+
+    @staticmethod
+    def _is_valid_digest(ref: str) -> bool:
+        """Check if a bundle reference is a valid digest.
+
+        Args:
+            ref: Bundle reference to validate
+
+        Returns:
+            True if ref is in format 'sha256:64-hex-chars'
+        """
+        if not ref or ':' not in ref:
+            return False
+
+        parts = ref.split(':', 1)
+        if len(parts) != 2:
+            return False
+
+        algorithm, hex_digest = parts
+        if algorithm != 'sha256':
+            return False
+
+        # Check if hex_digest is 64 hex characters
+        if len(hex_digest) != 64:
+            return False
+
+        try:
+            int(hex_digest, 16)  # Validate it's valid hex
+            return True
+        except ValueError:
+            return False
+
     def __post_init__(self):
         # Validate required fields
         if not self.bundle_ref:
             raise ContractViolationError("bundle_ref must be non-empty")
+
+        # Validate bundle_ref is a digest (sha256:64-hex-chars)
+        if not self._is_valid_digest(self.bundle_ref):
+            raise ContractViolationError(
+                f"bundle_ref must be a digest (sha256:64-hex-chars), got: {self.bundle_ref}"
+            )
+
         if not self.entrypoint:
             raise ContractViolationError("entrypoint must be non-empty")
         

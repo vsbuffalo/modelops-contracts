@@ -9,7 +9,7 @@ from .types import (
     TrialResult,
     MAX_DIAG_BYTES,
 )
-from .param_hashing import make_param_id
+from .param_hashing import make_param_id, digest_bytes
 from .adaptive import AdaptiveAlgorithm
 from .simulation import (
     SimTask,
@@ -32,6 +32,8 @@ from .ports import (
     CAS,
     WireFunction,
 )
+from .manifest import ModelEntry, BundleManifest
+from .batch import SimBatch, SimJob
 
 __version__ = CONTRACTS_VERSION
 
@@ -63,6 +65,7 @@ __all__ = [
     "parse_entrypoint",
     # Parameter utilities
     "make_param_id",
+    "digest_bytes",
     # Errors
     "ContractViolationError",
     # Ports (for hexagonal architecture)
@@ -72,4 +75,10 @@ __all__ = [
     "BundleRepository",
     "CAS",
     "WireFunction",
+    # Manifest types for discovery
+    "ModelEntry",
+    "BundleManifest",
+    # Batch execution types
+    "SimBatch",
+    "SimJob",
 ]
