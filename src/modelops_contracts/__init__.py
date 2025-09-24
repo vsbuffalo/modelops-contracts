@@ -33,7 +33,9 @@ from .ports import (
     WireFunction,
 )
 from .manifest import ModelEntry, BundleManifest
-from .batch import SimBatch, SimJob
+from .batch import SimBatch
+from .jobs import Job, SimJob, CalibrationJob, TargetSpec
+from .study import ParameterSet, SimulationStudy, CalibrationSpec
 
 __version__ = CONTRACTS_VERSION
 
@@ -80,5 +82,13 @@ __all__ = [
     "BundleManifest",
     # Batch execution types
     "SimBatch",
+    # Job types (discriminated union)
+    "Job",
     "SimJob",
+    "CalibrationJob",
+    "TargetSpec",
+    # Study types (parameter-space exploration)
+    "ParameterSet",
+    "SimulationStudy",
+    "CalibrationSpec",
 ]
