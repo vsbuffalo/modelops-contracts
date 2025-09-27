@@ -36,6 +36,14 @@ from .manifest import ModelEntry, BundleManifest
 from .batch import SimBatch
 from .jobs import Job, SimJob, CalibrationJob, TargetSpec
 from .study import ParameterSet, SimulationStudy, CalibrationSpec
+from .bundle_environment import (
+    BundleEnvironment,
+    RegistryConfig,
+    StorageConfig,
+    DEFAULT_ENVIRONMENT,
+    VALID_ENVIRONMENTS,
+    ENVIRONMENTS_DIR,
+)
 
 __version__ = CONTRACTS_VERSION
 
@@ -91,4 +99,11 @@ __all__ = [
     "ParameterSet",
     "SimulationStudy",
     "CalibrationSpec",
+    # Bundle environment configuration
+    "BundleEnvironment",
+    "RegistryConfig",
+    "StorageConfig",
+    "DEFAULT_ENVIRONMENT",
+    "VALID_ENVIRONMENTS",
+    "ENVIRONMENTS_DIR",
 ]
