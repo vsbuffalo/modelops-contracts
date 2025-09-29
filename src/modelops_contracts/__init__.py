@@ -44,6 +44,10 @@ from .bundle_environment import (
     VALID_ENVIRONMENTS,
     ENVIRONMENTS_DIR,
 )
+from .auth import (
+    Credential,
+    AuthProvider,
+)
 
 __version__ = CONTRACTS_VERSION
 
@@ -106,4 +110,7 @@ __all__ = [
     "DEFAULT_ENVIRONMENT",
     "VALID_ENVIRONMENTS",
     "ENVIRONMENTS_DIR",
+    # Authentication protocol
+    "Credential",
+    "AuthProvider",
 ]
