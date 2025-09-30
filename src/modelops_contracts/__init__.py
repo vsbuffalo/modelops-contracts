@@ -48,6 +48,7 @@ from .auth import (
     Credential,
     AuthProvider,
 )
+from .environment import EnvironmentDigest
 
 __version__ = CONTRACTS_VERSION
 
@@ -113,4 +114,6 @@ __all__ = [
     # Authentication protocol
     "Credential",
     "AuthProvider",
+    # Environment tracking
+    "EnvironmentDigest",
 ]
