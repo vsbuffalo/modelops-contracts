@@ -32,7 +32,8 @@ from .ports import (
     CAS,
     WireFunction,
 )
-from .manifest import ModelEntry, BundleManifest
+from .manifest import BundleManifest
+from .registry import ModelEntry, TargetEntry, BundleRegistry, discover_model_classes
 from .batch import SimBatch
 from .jobs import Job, SimJob, CalibrationJob, TargetSpec
 from .study import ParameterSet, SimulationStudy, CalibrationSpec
@@ -90,9 +91,12 @@ __all__ = [
     "BundleRepository",
     "CAS",
     "WireFunction",
-    # Manifest types for discovery
-    "ModelEntry",
+    # Manifest and registry types
     "BundleManifest",
+    "ModelEntry",
+    "TargetEntry",
+    "BundleRegistry",
+    "discover_model_classes",
     # Batch execution types
     "SimBatch",
     # Job types (discriminated union)
