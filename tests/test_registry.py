@@ -301,3 +301,80 @@ class TestBundleRegistry:
         assert "models" in data
         assert "test" in data["models"]
         assert data["models"]["test"]["class_name"] == "TestModel"
+
+
+class TestDiscoverModelClasses:
+    """Test the AST-based model discovery function."""
+
+    def test_discover_basic_inheritance(self, tmp_path):
+        """Test discovering classes with direct and qualified inheritance."""
+        model_file = tmp_path / "models.py"
+        model_file.write_text("""
+from calabaria import BaseModel
+import modelops_calabaria
+
+class DirectModel(BaseModel):
+    pass
+
+class QualifiedModel(calabaria.BaseModel):
+    pass
+
+class FullyQualifiedModel(modelops_calabaria.BaseModel):
+    pass
+
+class NotAModel:
+    pass
+""")
+
+        from modelops_contracts import discover_model_classes
+        discovered = discover_model_classes(model_file)
+
+        # Should find 3 models, not NotAModel
+        assert len(discovered) == 3
+        class_names = [name for name, _ in discovered]
+        assert "DirectModel" in class_names
+        assert "QualifiedModel" in class_names
+        assert "FullyQualifiedModel" in class_names
+        assert "NotAModel" not in class_names
+
+    def test_discover_transitive_inheritance(self, tmp_path):
+        """Test discovering classes that inherit from other BaseModel subclasses."""
+        model_file = tmp_path / "models.py"
+        model_file.write_text("""
+from calabaria import BaseModel
+
+class BaseSimulation(BaseModel):
+    pass
+
+class StochasticSEIR(BaseSimulation):
+    pass
+
+class NetworkSEIR(StochasticSEIR):
+    pass
+""")
+
+        from modelops_contracts import discover_model_classes
+        discovered = discover_model_classes(model_file)
+
+        # All three should be discovered
+        assert len(discovered) == 3
+        class_names = [name for name, _ in discovered]
+        assert "BaseSimulation" in class_names
+        assert "StochasticSEIR" in class_names
+        assert "NetworkSEIR" in class_names
+
+        # Check base classes are correct
+        discovered_dict = dict(discovered)
+        assert discovered_dict["BaseSimulation"] == ["BaseModel"]
+        assert discovered_dict["StochasticSEIR"] == ["BaseSimulation"]
+        assert discovered_dict["NetworkSEIR"] == ["StochasticSEIR"]
+
+    def test_discover_empty_file(self, tmp_path):
+        """Test that empty files return empty list."""
+        model_file = tmp_path / "empty.py"
+        model_file.write_text("# Just a comment\n")
+
+        from modelops_contracts import discover_model_classes
+        discovered = discover_model_classes(model_file)
+
+        assert discovered == []

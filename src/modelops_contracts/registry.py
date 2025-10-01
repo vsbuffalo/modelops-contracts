@@ -56,6 +56,66 @@ class ModelEntry(PydanticBaseModel):
 
     model_config = {"arbitrary_types_allowed": True}
 
+    def compute_digest(self, base_path: Optional[Path] = None) -> Optional[str]:
+        """Compute and store the digest of the model file.
+
+        Args:
+            base_path: Base directory for resolving relative paths
+
+        Returns:
+            The computed digest in format "sha256:xxxx" or None if file doesn't exist
+        """
+        import hashlib
+        base = base_path or Path.cwd()
+        model_file = base / self.path if not self.path.is_absolute() else self.path
+
+        if not model_file.exists():
+            return None
+
+        sha256 = hashlib.sha256()
+        with model_file.open('rb') as f:
+            for chunk in iter(lambda: f.read(8192), b''):
+                sha256.update(chunk)
+
+        digest = f"sha256:{sha256.hexdigest()}"
+        self.model_digest = digest
+        return digest
+
+    def compute_dependency_digests(self, base_path: Optional[Path] = None) -> None:
+        """Compute and store digests for all dependencies.
+
+        Updates data_digests and code_digests dictionaries with current file digests.
+
+        Args:
+            base_path: Base directory for resolving relative paths
+        """
+        import hashlib
+        base = base_path or Path.cwd()
+
+        def compute_file_digest(file_path: Path) -> str:
+            """Compute SHA256 digest with prefix."""
+            sha256 = hashlib.sha256()
+            with file_path.open('rb') as f:
+                for chunk in iter(lambda: f.read(8192), b''):
+                    sha256.update(chunk)
+            return f"sha256:{sha256.hexdigest()}"
+
+        # Compute data file digests
+        for data_file in self.data:
+            abs_path = base / data_file if not data_file.is_absolute() else data_file
+            if abs_path.exists():
+                # Store with relative path as key
+                path_key = str(data_file)
+                self.data_digests[path_key] = compute_file_digest(abs_path)
+
+        # Compute code file digests
+        for code_file in self.code:
+            abs_path = base / code_file if not code_file.is_absolute() else code_file
+            if abs_path.exists():
+                # Store with relative path as key
+                path_key = str(code_file)
+                self.code_digests[path_key] = compute_file_digest(abs_path)
+
     def check_invalidation(self, base_path: Optional[Path] = None) -> List[str]:
         """Check what changed since digests were computed.
 
@@ -77,7 +137,7 @@ class ModelEntry(PydanticBaseModel):
             with file_path.open('rb') as f:
                 for chunk in iter(lambda: f.read(8192), b''):
                     sha256.update(chunk)
-            return sha256.hexdigest()
+            return f"sha256:{sha256.hexdigest()}"
 
         # Check model file itself
         if self.path and self.model_digest:
