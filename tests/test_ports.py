@@ -78,7 +78,7 @@ def test_simulation_service_protocol():
     service: SimulationService = MockSimulationService()
     
     task = SimTask(
-        bundle_ref="sha256:abc",
+        bundle_ref="sha256:" + "a" * 64,
         entrypoint="test.Model/baseline",
         params=UniqueParameterSet.from_dict({"x": 1}),
         seed=42
@@ -113,7 +113,7 @@ def test_execution_environment_protocol():
     env: ExecutionEnvironment = MockExecutionEnvironment()
     
     task = SimTask(
-        bundle_ref="sha256:abc",
+        bundle_ref="sha256:" + "a" * 64,
         entrypoint="test.Model/baseline",
         params=UniqueParameterSet.from_dict({"x": 1}),
         seed=42

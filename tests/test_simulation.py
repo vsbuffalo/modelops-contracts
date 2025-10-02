@@ -7,6 +7,11 @@ from modelops_contracts import (
     ContractViolationError,
 )
 
+# Valid test bundle references (SHA256 with 64 hex chars)
+TEST_BUNDLE_1 = "sha256:" + "a" * 64
+TEST_BUNDLE_2 = "sha256:" + "b" * 64
+TEST_BUNDLE_3 = "sha256:" + "c" * 64
+
 
 def test_sim_task_creation():
     """Test basic SimTask creation."""
@@ -16,13 +21,13 @@ def test_sim_task_creation():
     )
     
     task = SimTask(
-        bundle_ref="sha256:abcdef1234567890fedcba0987654321",
+        bundle_ref=TEST_BUNDLE_1,
         entrypoint="model.main.Simulate/baseline",
         params=params,
         seed=42
     )
     
-    assert task.bundle_ref == "sha256:abcdef1234567890fedcba0987654321"
+    assert task.bundle_ref == TEST_BUNDLE_1
     assert str(task.entrypoint) == "model.main.Simulate/baseline"
     assert isinstance(task.entrypoint, str)  # It's an EntryPointId (which is a str)
     assert task.params.param_id == "abc123"
@@ -38,7 +43,7 @@ def test_sim_task_with_optional_fields():
     )
     
     task = SimTask(
-        bundle_ref="sha256:fedcba6543210987654321098765432109",
+        bundle_ref=TEST_BUNDLE_2,
         entrypoint="sim.core.Run/high_growth",
         params=params,
         seed=1337,
@@ -56,7 +61,7 @@ def test_sim_task_immutability():
     )
     
     task = SimTask(
-        bundle_ref="sha256:123abc4567890123456789012345678901",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="app.Main/baseline",
         params=params,
         seed=99
@@ -67,7 +72,7 @@ def test_sim_task_immutability():
         task.seed = 100
     
     with pytest.raises(AttributeError):
-        task.bundle_ref = "sha256:different"
+        task.bundle_ref = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
 
 
@@ -91,7 +96,7 @@ def test_sim_task_validation_errors():
     # Empty entrypoint
     with pytest.raises(ContractViolationError, match="entrypoint must be non-empty"):
         SimTask(
-            bundle_ref="sha256:abc123456789012345678901234567890",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             entrypoint="",
             params=params,
             seed=42
@@ -100,7 +105,7 @@ def test_sim_task_validation_errors():
     # Invalid entrypoint format
     with pytest.raises(ContractViolationError, match="Invalid entrypoint format"):
         SimTask(
-            bundle_ref="sha256:abc1234567890",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             entrypoint="not:valid:format",
             params=params,
             seed=42
@@ -109,7 +114,7 @@ def test_sim_task_validation_errors():
     # Wrong type for params
     with pytest.raises(ContractViolationError, match="params must be UniqueParameterSet"):
         SimTask(
-            bundle_ref="sha256:abc123456789012345678901234567890",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             entrypoint="main.Run/baseline",
             params={"raw": "dict"},  # Not a UniqueParameterSet
             seed=42
@@ -118,7 +123,7 @@ def test_sim_task_validation_errors():
     # Wrong type for seed
     with pytest.raises(ContractViolationError, match="seed must be int"):
         SimTask(
-            bundle_ref="sha256:abc123456789012345678901234567890",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             entrypoint="main.Run/baseline",
             params=params,
             seed="42"  # String instead of int
@@ -127,7 +132,7 @@ def test_sim_task_validation_errors():
     # Seed out of range
     with pytest.raises(ContractViolationError, match="seed .* out of uint64 range"):
         SimTask(
-            bundle_ref="sha256:abc123456789012345678901234567890",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             entrypoint="main.Run/baseline",
             params=params,
             seed=-1
@@ -135,7 +140,7 @@ def test_sim_task_validation_errors():
     
     with pytest.raises(ContractViolationError, match="seed .* out of uint64 range"):
         SimTask(
-            bundle_ref="sha256:abc123456789012345678901234567890",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             entrypoint="main.Run/baseline",
             params=params,
             seed=2**64  # Too large
@@ -151,7 +156,7 @@ def test_sim_task_outputs_conversion():
     
     # With list
     task = SimTask(
-        bundle_ref="sha256:qwerty123456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="sim.Run/baseline",
         params=params,
         seed=777,
@@ -163,7 +168,7 @@ def test_sim_task_outputs_conversion():
     
     # With tuple (should remain tuple)
     task2 = SimTask(
-        bundle_ref="sha256:asdfgh123456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="sim.Run/baseline",  # Fixed to match bundle_ref
         params=params,
         seed=888,
@@ -182,7 +187,7 @@ def test_sim_task_id_generation():
     )
     
     task1 = SimTask(
-        bundle_ref="sha256:identical123456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="same.Function/base",
         params=params,
         seed=100,
@@ -191,7 +196,7 @@ def test_sim_task_id_generation():
     
     # Same inputs should give same ID
     task2 = SimTask(
-        bundle_ref="sha256:identical123456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="same.Function/base",
         params=params,
         seed=100,
@@ -202,7 +207,7 @@ def test_sim_task_id_generation():
     
     # Different seed should give different ID
     task3 = SimTask(
-        bundle_ref="sha256:identical123456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="same.Function/base",
         params=params,
         seed=101,  # Different seed
@@ -225,29 +230,29 @@ def test_sim_task_equality():
     )
     
     task1 = SimTask(
-        bundle_ref="sha256:hashme123456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="app.Start/baseline",
         params=params,
         seed=2048
     )
     
     task2 = SimTask(
-        bundle_ref="sha256:hashme123456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="app.Start/baseline",
         params=params,
         seed=2048
     )
     
     task3 = SimTask(
-        bundle_ref="sha256:different123456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         entrypoint="app.Start/baseline",
         params=params,
-        seed=2048
+        seed=2049  # Different seed
     )
-    
+
     # Same values should be equal
     assert task1 == task2
-    
+
     # Different values should not be equal
     assert task1 != task3
 
@@ -257,12 +262,12 @@ def test_from_components_basic():
     task = SimTask.from_components(
         import_path="my_model.simulations.SEIR",
         scenario="baseline",
-        bundle_ref="sha256:abc123def456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params={"R0": 2.5, "incubation_days": 5},
         seed=42
     )
     
-    assert task.bundle_ref == "sha256:abc123def456789012345678901234567890"
+    assert task.bundle_ref == "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     assert str(task.entrypoint) == "my_model.simulations.SEIR/baseline"
     assert task.params.params["R0"] == 2.5
     assert task.params.params["incubation_days"] == 5
@@ -277,7 +282,7 @@ def test_from_components_with_outputs():
     task = SimTask.from_components(
         import_path="covid.models.Main",
         scenario="lockdown",
-        bundle_ref="sha256:fedcba098765432109876543210987654321",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params={"beta": 0.5},
         seed=100,
         outputs=["hospitalizations", "deaths", "infections"]  # Unsorted
@@ -295,7 +300,7 @@ def test_from_components_with_config_env():
     task = SimTask.from_components(
         import_path="sim.Engine",
         scenario="test",
-        bundle_ref="sha256:123abc456def789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params={"x": 1.0},
         seed=777,
         config=config,
@@ -328,7 +333,7 @@ def test_from_components_generates_param_id():
     task = SimTask.from_components(
         import_path="test.Model",
         scenario="baseline",
-        bundle_ref="sha256:aaa111bbb222ccc333ddd444eee555fff666777",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params=params,
         seed=42
     )
@@ -341,7 +346,7 @@ def test_from_components_generates_param_id():
     task2 = SimTask.from_components(
         import_path="test.Model",
         scenario="baseline",
-        bundle_ref="sha256:aaa111bbb222ccc333ddd444eee555fff666777",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params=params,
         seed=42
     )
@@ -353,7 +358,7 @@ def test_from_components_sim_root_includes_config():
     task_without_config = SimTask.from_components(
         import_path="model.Sim",
         scenario="base",
-        bundle_ref="sha256:abc123456789012345678901234567890123456",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params={"p": 1},
         seed=10
     )
@@ -361,7 +366,7 @@ def test_from_components_sim_root_includes_config():
     task_with_config = SimTask.from_components(
         import_path="model.Sim",
         scenario="base",
-        bundle_ref="sha256:abc123456789012345678901234567890123456",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params={"p": 1},
         seed=10,
         config={"option": "value"}
@@ -378,12 +383,12 @@ def test_simtask_direct_constructor():
     """Test creating SimTask with direct constructor."""
     task = SimTask(
         entrypoint="my_model.simulations.SEIR/baseline",
-        bundle_ref="sha256:abc123def456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params=UniqueParameterSet.from_dict({"R0": 2.5, "incubation_days": 5}),
         seed=42
     )
     
-    assert task.bundle_ref == "sha256:abc123def456789012345678901234567890"
+    assert task.bundle_ref == "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     assert str(task.entrypoint) == "my_model.simulations.SEIR/baseline"
     assert task.params.params["R0"] == 2.5
     assert task.params.params["incubation_days"] == 5
@@ -398,7 +403,7 @@ def test_simtask_validation_in_post_init():
     # Invalid entrypoint format
     with pytest.raises(ContractViolationError, match="Invalid entrypoint format"):
         SimTask(
-            bundle_ref="sha256:wrongdigest12345678901234567890123456",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             entrypoint="invalid-entrypoint",  # Bad format!
             params=UniqueParameterSet.from_dict({"p": 1}),
             seed=42
@@ -411,7 +416,7 @@ def test_from_components_and_direct_constructor():
     task1 = SimTask.from_components(
         import_path="roundtrip.test.Model",
         scenario="baseline",
-        bundle_ref="sha256:abc123def456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params={"alpha": 0.5, "beta": 1.0},
         seed=100,
         outputs=["metric1", "metric2"],
@@ -424,7 +429,7 @@ def test_from_components_and_direct_constructor():
     # Create again with direct constructor
     task2 = SimTask(
         entrypoint=entrypoint_str,
-        bundle_ref="sha256:abc123def456789012345678901234567890",
+        bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         params=UniqueParameterSet.from_dict({"alpha": 0.5, "beta": 1.0}),
         seed=100,
         outputs=["metric1", "metric2"],
@@ -451,7 +456,7 @@ def test_seed_uint64_bounds():
         task = SimTask.from_components(
             import_path="test.Model",
             scenario="test",
-            bundle_ref="sha256:abc123456789012345678901234567890123",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             params={},
             seed=seed
         )
@@ -463,7 +468,7 @@ def test_seed_uint64_bounds():
             SimTask.from_components(
                 import_path="test.Model",
                 scenario="test",
-                bundle_ref="sha256:abc123456789012345678901234567890123",
+                bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                 params={},
                 seed=seed
             )
@@ -483,7 +488,7 @@ def test_outputs_always_sorted():
         task = SimTask.from_components(
             import_path="test.Sort",
             scenario="test",
-            bundle_ref="sha256:def456abc123789012345678901234567890",
+            bundle_ref="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             params={"x": 1},
             seed=10,
             outputs=outputs

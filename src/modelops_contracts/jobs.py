@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
-from .batch import SimBatch
+from .simulation import SimTask
 from .artifacts import SimReturn
 
 
@@ -68,10 +68,11 @@ class Job(ABC):
 class SimJob(Job):
     """Simulation job with pre-determined tasks.
 
-    A SimJob contains one or more batches of simulation tasks
-    that are executed in parallel. All tasks are known upfront.
+    A SimJob contains simulation tasks that are executed
+    in parallel. All tasks are known upfront.
     """
-    batches: List[SimBatch]
+    tasks: List[SimTask]
+    metadata: Dict[str, Any] = field(default_factory=dict)
     priority: int = 0
     resource_requirements: Optional[Dict[str, Any]] = None
 
@@ -79,29 +80,38 @@ class SimJob(Job):
     def job_type(self) -> str:
         return "simulation"
 
-    def total_task_count(self) -> int:
-        """Get total number of tasks across all batches."""
-        return sum(batch.task_count() for batch in self.batches)
+    def task_count(self) -> int:
+        """Get total number of tasks."""
+        return len(self.tasks)
+
+    def get_task_groups(self) -> Dict[str, List[SimTask]]:
+        """Group tasks by parameter set for aggregation.
+
+        Returns:
+            Dictionary mapping param_id to list of tasks (replicates)
+        """
+        groups = {}
+        for task in self.tasks:
+            param_id = task.params.param_id
+            if param_id not in groups:
+                groups[param_id] = []
+            groups[param_id].append(task)
+        return groups
 
     def validate(self) -> None:
         """Validate SimJob configuration."""
         super().validate()
 
-        if not self.batches:
-            raise ValueError("SimJob must have at least one batch")
+        if not self.tasks:
+            raise ValueError("SimJob must have at least one task")
 
-        # Validate all batches
-        for i, batch in enumerate(self.batches):
-            if not batch.tasks:
-                raise ValueError(f"Batch {i} must have at least one task")
-
-            # Ensure all tasks use same bundle
-            for task in batch.tasks:
-                if task.bundle_ref != self.bundle_ref:
-                    raise ValueError(
-                        f"All tasks must use job bundle_ref {self.bundle_ref}, "
-                        f"but task has {task.bundle_ref}"
-                    )
+        # Ensure all tasks use same bundle
+        for task in self.tasks:
+            if task.bundle_ref != self.bundle_ref:
+                raise ValueError(
+                    f"All tasks must use job bundle_ref {self.bundle_ref}, "
+                    f"but task has {task.bundle_ref}"
+                )
 
 
 @dataclass(frozen=True)

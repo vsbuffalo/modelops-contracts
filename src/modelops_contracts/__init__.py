@@ -34,9 +34,8 @@ from .ports import (
 )
 from .manifest import BundleManifest
 from .registry import ModelEntry, TargetEntry, BundleRegistry, discover_model_classes
-from .batch import SimBatch
 from .jobs import Job, SimJob, CalibrationJob, TargetSpec
-from .study import ParameterSet, SimulationStudy, CalibrationSpec
+from .study import SimulationStudy, CalibrationSpec
 from .bundle_environment import (
     BundleEnvironment,
     RegistryConfig,
@@ -97,15 +96,12 @@ __all__ = [
     "TargetEntry",
     "BundleRegistry",
     "discover_model_classes",
-    # Batch execution types
-    "SimBatch",
     # Job types (discriminated union)
     "Job",
     "SimJob",
     "CalibrationJob",
     "TargetSpec",
     # Study types (parameter-space exploration)
-    "ParameterSet",
     "SimulationStudy",
     "CalibrationSpec",
     # Bundle environment configuration
