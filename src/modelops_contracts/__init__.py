@@ -41,7 +41,6 @@ from .bundle_environment import (
     RegistryConfig,
     StorageConfig,
     DEFAULT_ENVIRONMENT,
-    VALID_ENVIRONMENTS,
     ENVIRONMENTS_DIR,
 )
 from .auth import (

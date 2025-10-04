@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 
 # Constants for standard environment names
 DEFAULT_ENVIRONMENT = "dev"  # From Pulumi's default stack naming - may change in future
-VALID_ENVIRONMENTS = {"local", "dev"}  # Only what we actually support
+# Allow any environment name - it's just a label! Users should be able to use prod, staging, test, etc.
 ENVIRONMENTS_DIR = Path.home() / ".modelops" / "bundle-env"
 
 
@@ -60,16 +60,18 @@ class BundleEnvironment(BaseModel):
     Both registry and storage must be configured for bundle push/pull.
     """
 
-    environment: str  # "local" or "dev"
+    environment: str  # Any environment name (dev, prod, staging, test, etc.)
     registry: RegistryConfig
     storage: StorageConfig
     timestamp: Optional[str] = None  # When this was generated
 
     @field_validator('environment')
     def validate_environment(cls, v):
-        if v not in VALID_ENVIRONMENTS:
-            raise ValueError(f"Environment must be one of {VALID_ENVIRONMENTS}")
-        return v
+        # Accept any non-empty string as environment name
+        # It's just a label - users should be able to use whatever makes sense
+        if not v or not v.strip():
+            raise ValueError("Environment name cannot be empty")
+        return v.strip().lower()
 
     # Class methods for loading/saving
     @classmethod
