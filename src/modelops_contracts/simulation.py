@@ -55,9 +55,22 @@ class SimTask:
             ref: Bundle reference to validate
 
         Returns:
-            True if ref is in format 'sha256:64-hex-chars'
+            True if ref is in format 'sha256:64-hex-chars' or 'repository@sha256:64-hex-chars'
         """
-        if not ref or ':' not in ref:
+        if not ref:
+            return False
+
+        # Check for repository@sha256:digest format
+        if '@' in ref:
+            parts = ref.split('@', 1)
+            if len(parts) != 2:
+                return False
+            repository, digest_part = parts
+            if not repository:  # Repository name can't be empty
+                return False
+            ref = digest_part  # Continue validation with the digest part
+
+        if ':' not in ref:
             return False
 
         parts = ref.split(':', 1)
@@ -83,10 +96,10 @@ class SimTask:
         if not self.bundle_ref:
             raise ContractViolationError("bundle_ref must be non-empty")
 
-        # Validate bundle_ref is a digest (sha256:64-hex-chars)
+        # Validate bundle_ref is a digest (sha256:64-hex-chars or repository@sha256:64-hex-chars)
         if not self._is_valid_digest(self.bundle_ref):
             raise ContractViolationError(
-                f"bundle_ref must be a digest (sha256:64-hex-chars), got: {self.bundle_ref}"
+                f"bundle_ref must be a digest (sha256:64-hex-chars or repository@sha256:64-hex-chars), got: {self.bundle_ref}"
             )
 
         if not self.entrypoint:
