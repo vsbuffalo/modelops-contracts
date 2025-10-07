@@ -15,6 +15,12 @@ import yaml
 from pydantic import BaseModel as PydanticBaseModel, Field, model_validator
 
 
+# Standard bundle storage location constants
+BUNDLE_STORAGE_DIR = ".modelops-bundle"
+REGISTRY_FILE = "registry.yaml"
+REGISTRY_PATH = f"{BUNDLE_STORAGE_DIR}/{REGISTRY_FILE}"
+
+
 class ModelEntry(PydanticBaseModel):
     """Unified registry entry for a model - discovery, dependencies, and tracking.
 

@@ -33,7 +33,15 @@ from .ports import (
     WireFunction,
 )
 from .manifest import BundleManifest
-from .registry import ModelEntry, TargetEntry, BundleRegistry, discover_model_classes
+from .registry import (
+    ModelEntry,
+    TargetEntry,
+    BundleRegistry,
+    discover_model_classes,
+    BUNDLE_STORAGE_DIR,
+    REGISTRY_FILE,
+    REGISTRY_PATH,
+)
 from .jobs import Job, SimJob, CalibrationJob, TargetSpec
 from .study import SimulationStudy, CalibrationSpec
 from .bundle_environment import (
@@ -95,6 +103,9 @@ __all__ = [
     "TargetEntry",
     "BundleRegistry",
     "discover_model_classes",
+    "BUNDLE_STORAGE_DIR",
+    "REGISTRY_FILE",
+    "REGISTRY_PATH",
     # Job types (discriminated union)
     "Job",
     "SimJob",
