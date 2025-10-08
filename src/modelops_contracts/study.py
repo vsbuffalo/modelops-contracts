@@ -57,10 +57,11 @@ class SimulationStudy:
         Raises:
             ValueError: If bundle_ref format is invalid
         """
-        # Validate bundle_ref format
-        if not bundle_ref.startswith("sha256:") or len(bundle_ref) != 71:
+        # Validate bundle_ref format using same logic as Job and SimTask
+        from .simulation import SimTask
+        if not SimTask._is_valid_digest(bundle_ref):
             raise ValueError(
-                f"bundle_ref must be sha256:64-hex-chars, got: {bundle_ref}"
+                f"bundle_ref must be sha256:64-hex-chars or repository@sha256:64-hex-chars, got: {bundle_ref}"
             )
 
         # Create tasks for all parameter sets and replicates

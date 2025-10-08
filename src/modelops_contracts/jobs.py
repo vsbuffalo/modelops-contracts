@@ -57,11 +57,55 @@ class Job(ABC):
         if not self.bundle_ref:
             raise ValueError("bundle_ref must be non-empty")
 
-        # Validate bundle_ref format (sha256:64-hex-chars)
-        if not self.bundle_ref.startswith("sha256:") or len(self.bundle_ref) != 71:
+        # Validate bundle_ref format - use same validation as SimTask
+        if not self._is_valid_digest(self.bundle_ref):
             raise ValueError(
-                f"bundle_ref must be sha256:64-hex-chars, got: {self.bundle_ref}"
+                f"bundle_ref must be sha256:64-hex-chars or repository@sha256:64-hex-chars, got: {self.bundle_ref}"
             )
+
+    @staticmethod
+    def _is_valid_digest(ref: str) -> bool:
+        """Check if a bundle reference is a valid digest.
+
+        Args:
+            ref: Bundle reference to validate
+
+        Returns:
+            True if ref is in format 'sha256:64-hex-chars' or 'repository@sha256:64-hex-chars'
+        """
+        if not ref:
+            return False
+
+        # Check for repository@sha256:digest format
+        if '@' in ref:
+            parts = ref.split('@', 1)
+            if len(parts) != 2:
+                return False
+            repository, digest_part = parts
+            if not repository:  # Repository name can't be empty
+                return False
+            ref = digest_part  # Continue validation with the digest part
+
+        if ':' not in ref:
+            return False
+
+        parts = ref.split(':', 1)
+        if len(parts) != 2:
+            return False
+
+        algorithm, hex_digest = parts
+        if algorithm != 'sha256':
+            return False
+
+        # Check if hex_digest is 64 hex characters
+        if len(hex_digest) != 64:
+            return False
+
+        try:
+            int(hex_digest, 16)  # Validate it's valid hex
+            return True
+        except ValueError:
+            return False
 
 
 @dataclass(frozen=True)

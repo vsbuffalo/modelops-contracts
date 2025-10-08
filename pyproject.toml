@@ -6,7 +6,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.11.7",
-]  # Still zero dependencies!
+    "PyYAML>=6.0",
+]
 
 [project.optional-dependencies]
 dev = [
