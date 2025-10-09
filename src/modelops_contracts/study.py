@@ -39,6 +39,7 @@ class SimulationStudy:
     sampling_method: str
     n_replicates: int = 1
     outputs: Optional[List[str]] = None
+    targets: Optional[List[str]] = None  # Target entrypoints for loss computation
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_simjob(self, bundle_ref: str, job_id: Optional[str] = None) -> SimJob:
@@ -96,11 +97,22 @@ class SimulationStudy:
             **self.metadata
         }
 
+        # Create TargetSpec if targets are specified
+        from .jobs import TargetSpec
+        target_spec = None
+        if self.targets:
+            target_spec = TargetSpec(
+                data={"target_entrypoints": self.targets},
+                loss_function="default",  # Can be customized later
+                metadata={"targets": self.targets}
+            )
+
         return SimJob(
             job_id=job_id,
             tasks=tasks,  # Direct tasks list, no batch!
             bundle_ref=bundle_ref,
-            metadata=job_metadata
+            metadata=job_metadata,
+            target_spec=target_spec
         )
 
     def _generate_seed(self, param_id: str, replicate_idx: int) -> int:

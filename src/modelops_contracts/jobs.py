@@ -119,6 +119,7 @@ class SimJob(Job):
     metadata: Dict[str, Any] = field(default_factory=dict)
     priority: int = 0
     resource_requirements: Optional[Dict[str, Any]] = None
+    target_spec: Optional[TargetSpec] = None  # Optional targets for loss computation
 
     @property
     def job_type(self) -> str:

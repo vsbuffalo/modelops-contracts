@@ -14,6 +14,9 @@ from .adaptive import AdaptiveAlgorithm
 from .simulation import (
     SimTask,
     TableIPC,
+    ReplicateSet,
+    AggregationTask,
+    AggregationReturn,
 )
 from .artifacts import TableArtifact, SimReturn, ErrorInfo, INLINE_CAP
 from .entrypoint import (
@@ -38,6 +41,7 @@ from .registry import (
     TargetEntry,
     BundleRegistry,
     discover_model_classes,
+    discover_target_functions,
     BUNDLE_STORAGE_DIR,
     REGISTRY_FILE,
     REGISTRY_PATH,
@@ -64,6 +68,9 @@ __all__ = [
     "CONTRACTS_VERSION",
     # Core task specification (ESSENTIAL - not internal!)
     "SimTask",
+    "ReplicateSet",
+    "AggregationTask",
+    "AggregationReturn",
     "UniqueParameterSet",
     "SeedInfo",
     # Type aliases
@@ -103,6 +110,7 @@ __all__ = [
     "TargetEntry",
     "BundleRegistry",
     "discover_model_classes",
+    "discover_target_functions",
     "BUNDLE_STORAGE_DIR",
     "REGISTRY_FILE",
     "REGISTRY_PATH",

@@ -224,13 +224,15 @@ class TargetEntry(PydanticBaseModel):
 
     Attributes:
         path: Path to the Python file containing the target
+        entrypoint: Module path and function name (e.g., "targets.prevalence:prevalence_target")
         model_output: Name of the model output to calibrate against
-        observation: Path to observation data file
+        data: List of data file dependencies
         target_digest: Token-based hash of the target file
     """
     path: Path
+    entrypoint: str
     model_output: str
-    observation: Path
+    data: List[Path] = []
     target_digest: Optional[str] = None
 
     model_config = {"arbitrary_types_allowed": True}
@@ -239,8 +241,9 @@ class TargetEntry(PydanticBaseModel):
         """Convert to dictionary for YAML serialization."""
         return {
             "path": str(self.path),
+            "entrypoint": self.entrypoint,
             "model_output": self.model_output,
-            "observation": str(self.observation),
+            "data": [str(p) for p in self.data],
             "target_digest": self.target_digest
         }
 
@@ -249,8 +252,9 @@ class TargetEntry(PydanticBaseModel):
         """Create from dictionary (YAML deserialization)."""
         return cls(
             path=Path(data["path"]),
+            entrypoint=data["entrypoint"],
             model_output=data["model_output"],
-            observation=Path(data["observation"]),
+            data=[Path(p) for p in data.get("data", [])],
             target_digest=data.get("target_digest")
         )
 
@@ -332,14 +336,16 @@ class BundleRegistry(PydanticBaseModel):
         self,
         target_id: str,
         path: Path,
+        entrypoint: str,
         model_output: str,
-        observation: Path
+        data: List[Path] = None
     ) -> TargetEntry:
         """Add a target to the registry."""
         entry = TargetEntry(
             path=path,
+            entrypoint=entrypoint,
             model_output=model_output,
-            observation=observation
+            data=data or []
         )
         self.targets[target_id] = entry
         return entry
@@ -376,10 +382,10 @@ class BundleRegistry(PydanticBaseModel):
             dependencies.update(model.data)
             dependencies.update(model.code)
 
-        # Add target files and their observation data
+        # Add target files and their data dependencies
         for target in self.targets.values():
             dependencies.add(target.path)
-            dependencies.add(target.observation)
+            dependencies.update(target.data)
 
         return sorted(list(dependencies))
 
@@ -510,10 +516,72 @@ def discover_model_classes(file_path: Path) -> List[Tuple[str, List[str]]]:
     return model_classes
 
 
+def discover_target_functions(file_path: Path) -> List[Tuple[str, Dict[str, Any]]]:
+    """Discover functions decorated with @calibration_target in a Python file.
+
+    This function uses AST parsing to find decorated functions without executing code,
+    making it safe to use on untrusted files.
+
+    Args:
+        file_path: Path to Python file to analyze
+
+    Returns:
+        List of (function_name, metadata) tuples where metadata is a dict
+        extracted from the decorator arguments
+
+    Example:
+        >>> discover_target_functions(Path("targets.py"))
+        [("prevalence_target", {
+            "model_output": "prevalence",
+            "data": {
+                "observed": "data/observed_prevalence.csv",
+                "population": "data/population.csv"
+            }
+        })]
+    """
+    with open(file_path) as f:
+        tree = ast.parse(f.read())
+
+    target_functions = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            # Look for @calibration_target decorator
+            for decorator in node.decorator_list:
+                decorator_name = None
+                decorator_kwargs = {}
+
+                # Handle direct name (e.g., @calibration_target)
+                if isinstance(decorator, ast.Name):
+                    decorator_name = decorator.id
+                # Handle call with arguments (e.g., @calibration_target(...))
+                elif isinstance(decorator, ast.Call):
+                    if isinstance(decorator.func, ast.Name):
+                        decorator_name = decorator.func.id
+                    elif isinstance(decorator.func, ast.Attribute):
+                        # Handle module.calibration_target
+                        decorator_name = decorator.func.attr
+
+                    # Extract keyword arguments
+                    for keyword in decorator.keywords:
+                        # Try to evaluate the argument as a literal
+                        try:
+                            decorator_kwargs[keyword.arg] = ast.literal_eval(keyword.value)
+                        except (ValueError, TypeError):
+                            # If it's not a literal, store as string representation
+                            decorator_kwargs[keyword.arg] = ast.unparse(keyword.value)
+
+                if decorator_name == "calibration_target":
+                    target_functions.append((node.name, decorator_kwargs))
+
+    return target_functions
+
+
 __all__ = [
     "ModelEntry",
     "TargetEntry",
     "BundleRegistry",
     "RegistryReader",
     "discover_model_classes",
+    "discover_target_functions",
 ]
